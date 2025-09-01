@@ -211,6 +211,36 @@ function Tree.LoadLib(libName)
     return nil
 end
 
+Wait = MP.Sleep
+
+local threadId = 0
+local threads = {}
+
+function CreateThread(func)
+    if type(func) ~= "function" then
+        print("^1[Tree Framework] Error: CreateThread expects a function^r")
+        return
+    end
+    
+    threadId = threadId + 1
+    local id = "__thread_" .. threadId
+    local handlerName = "__thread_handler_" .. threadId
+    
+    _G[handlerName] = function()
+        func()
+        MP.CancelEventTimer(id)
+        _G[handlerName] = nil
+        threads[id] = nil
+    end
+    
+    threads[id] = _G[handlerName]
+    
+    MP.RegisterEvent(id, handlerName)
+    MP.CreateEventTimer(id, 100)
+    
+    return threadId
+end
+
 print("^2[Tree Framework] Scanning for plugins...^7")
 
 local parentDir = Tree.Utils.getParentDirectory(scriptDir)
@@ -219,6 +249,5 @@ if parentDir then
 else
     print("^1[Tree Framework] Could not determine parent directory for plugin scanning^7")
 end
-Wait = MP.Sleep
 
 _G.Tree = Tree
