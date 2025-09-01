@@ -2,49 +2,6 @@ Tree = Tree or {}
 Tree.Version = "0.0.1"
 Tree.Author = "Tree Framework Team"
 
-local originalPrint = print
-
-local colors = {
-    ["^r"] = "\27[0m",     -- reset
-    ["^p"] = "\n",         -- newline
-    ["^n"] = "\27[4m",     -- underline
-    ["^l"] = "\27[1m",     -- bold
-    ["^m"] = "\27[9m",     -- strike-through
-    ["^o"] = "\27[3m",     -- italic
-    ["^0"] = "\27[30m",    -- black
-    ["^1"] = "\27[34m",    -- blue
-    ["^2"] = "\27[32m",    -- green
-    ["^3"] = "\27[96m",    -- light blue
-    ["^4"] = "\27[31m",    -- red
-    ["^5"] = "\27[95m",    -- pink
-    ["^6"] = "\27[33m",    -- orange
-    ["^7"] = "\27[37m",    -- grey
-    ["^8"] = "\27[90m",    -- dark grey
-    ["^9"] = "\27[35m",    -- light purple
-    ["^a"] = "\27[92m",    -- light green
-    ["^b"] = "\27[94m",    -- light blue
-    ["^c"] = "\27[91m",    -- dark orange
-    ["^d"] = "\27[93m",    -- light pinks
-    ["^e"] = "\27[93m",    -- yellow
-    ["^f"] = "\27[97m"     -- white
-}
-
-print = function(...)
-    local args = {...}
-    for i, arg in ipairs(args) do
-        if type(arg) == "string" then
-            for code, ansi in pairs(colors) do
-                arg = arg:gsub("%"..code, ansi)
-            end
-            arg = arg .. "\27[0m"
-            args[i] = arg
-        end
-    end
-    originalPrint(table.unpack(args))
-end
-
-print("^2[Tree Framework] v1.0.0 - BeamMP Plugin System^r")
-
 local function getScriptDir()
     local info = debug.getinfo(1, "S")
     if info and info.source then
@@ -69,9 +26,20 @@ end
 
 local scriptDir = getScriptDir()
 
+-- Load core modules
 dofile(scriptDir .. "_tree/utils.lua")
 dofile(scriptDir .. "_tree/manifest.lua")
 dofile(scriptDir .. "_tree/loader.lua")
+dofile(scriptDir .. "_tree/colors.lua")
+dofile(scriptDir .. "_tree/threads.lua")
+dofile(scriptDir .. "_tree/library.lua")
+
+-- Initialize colors
+Tree.Colors.init()
+
+print("^2[Tree Framework] v1.0.0 - BeamMP Plugin System^r")
+
+-- Core API functions
 function Tree.Init(manifestPath)
     if not manifestPath then
         print("^1[Tree Framework] Error: No manifest path provided^7")
@@ -132,8 +100,6 @@ function Tree.LoadScript(scriptPath)
     return Tree.Init(manifestPath)
 end
 
-Tree.OnScriptLoaded = nil
-
 function Tree.Debug(...)
     local args = {...}
     local message = "^5[Tree Debug]^r "
@@ -151,96 +117,11 @@ function Tree.Debug(...)
     end
 end
 
-function Tree.LoadLib(libName)
-    if not libName or type(libName) ~= "string" then
-        print("^4[Tree Framework] Error: Invalid library name^r")
-        return nil
-    end
-    
-    local isWindows = package.config:sub(1,1) == '\\'
-    local extension = isWindows and ".dll" or ".so"
-    local fileName = libName .. extension
-    
-    local functionNames = {
-        "luaopen_" .. libName,
-        "luaopen_lib" .. libName,
-        libName .. "_init",
-        "init_" .. libName,
-        "open_" .. libName
-    }
-    
-    local function tryLoadLib(libPath, source)
-        if not Tree.Utils.fileExists(libPath) then
-            return nil
-        end
-        
-        for _, funcName in ipairs(functionNames) do
-            local success, result = pcall(package.loadlib, libPath, funcName)
-            if success and result then
-                local initSuccess, lib = pcall(result)
-                if initSuccess then
-                    print("^2[Tree Framework] Loaded library: " .. fileName .. " from " .. source .. " (entry: " .. funcName .. ")^r")
-                    return lib
-                else
-                    print("^3[Tree Framework] Function " .. funcName .. " found but init failed: " .. tostring(lib) .. "^r")
-                end
-            end
-        end
-        
-        return nil
-    end
-    
-    local pluginName, pluginPath = Tree.Utils.getCallingPlugin()
-    
-    if pluginName and pluginPath then
-        local pluginLibPath = pluginPath .. "/lib/" .. fileName
-        local lib = tryLoadLib(pluginLibPath, "plugin " .. pluginName)
-        if lib then
-            return lib
-        end
-        print("^3[Tree Framework] Library not found in plugin " .. pluginName .. ": " .. pluginLibPath .. "^r")
-    end
-    
-    local success, result = pcall(require, libName)
-    if success then
-        print("^2[Tree Framework] Loaded library: " .. libName .. " via require^r")
-        return result
-    end
-    
-    print("^4[Tree Framework] Error: Unable to load library " .. libName .. " (searched plugin libs and system)^r")
-    return nil
-end
-
+-- Global variables
+Tree.OnScriptLoaded = nil
 Wait = MP.Sleep
 
-local threadId = 0
-local threads = {}
-
-function CreateThread(func)
-    if type(func) ~= "function" then
-        print("^1[Tree Framework] Error: CreateThread expects a function^r")
-        return
-    end
-    
-    threadId = threadId + 1
-    local id = "__thread_" .. threadId
-    local handlerName = "__thread_handler_" .. threadId
-    
-    _G[handlerName] = function()
-        func()
-        MP.CancelEventTimer(id)
-        _G[handlerName] = nil
-        threads[id] = nil
-    end
-    
-    threads[id] = _G[handlerName]
-    
-    MP.RegisterEvent(id, handlerName)
-    MP.CreateEventTimer(id, 100)
-    
-    return threadId
-end
-
+-- Initialize plugin system
 print("^2[Tree Framework] Scanning for plugins...^7")
 
 local parentDir = Tree.Utils.getParentDirectory(scriptDir)
