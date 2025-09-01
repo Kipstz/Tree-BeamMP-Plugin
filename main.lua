@@ -117,11 +117,9 @@ function Tree.Debug(...)
     end
 end
 
--- Global variables
 Tree.OnScriptLoaded = nil
 Wait = MP.Sleep
 
--- Initialize plugin system
 print("^2[Tree Framework] Scanning for plugins...^7")
 
 local parentDir = Tree.Utils.getParentDirectory(scriptDir)

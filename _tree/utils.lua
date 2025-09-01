@@ -128,6 +128,18 @@ function Tree.Utils.copyTable(original)
     return copy
 end
 
+function Tree.Utils.tableLength(t)
+    if not t or type(t) ~= "table" then
+        return 0
+    end
+    
+    local count = 0
+    for _ in pairs(t) do
+        count = count + 1
+    end
+    return count
+end
+
 function Tree.Utils.getParentDirectory(path)
     if not path then return nil end
     
@@ -145,22 +157,20 @@ function Tree.Utils.scanForPlugins(baseDir)
     end
     
     local plugins = {}
-    
     local directories = FS.ListDirectories(baseDir)
-    if not directories then
-        return plugins
-    end
     
-    for _, pluginName in ipairs(directories) do
-        local pluginPath = baseDir .. "/" .. pluginName
-        local manifestPath = pluginPath .. "/manifest.lua"
-        
-        if FS.Exists(manifestPath) and FS.IsFile(manifestPath) then
-            table.insert(plugins, {
-                name = pluginName,
-                path = pluginPath,
-                manifest = manifestPath
-            })
+    if directories and type(directories) == "table" and #directories > 0 then
+        for _, pluginName in ipairs(directories) do
+            local pluginPath = baseDir .. "/" .. pluginName
+            local manifestPath = pluginPath .. "/manifest.lua"
+            
+            if FS.Exists(manifestPath) and FS.IsFile(manifestPath) then
+                table.insert(plugins, {
+                    name = pluginName,
+                    path = pluginPath,
+                    manifest = manifestPath
+                })
+            end
         end
     end
     
