@@ -51,15 +51,6 @@ function Tree.Utils.glob(pattern, basePath)
     end
     
     local function scanDir(dir, filePattern, recursive)
-        if not FS then
-            print("^1[Tree Framework] Warning: FS library not available, functionality limited^r")
-            return
-        end
-        
-        if not FS.Exists(dir) or not FS.IsDirectory(dir) then
-            return
-        end
-        
         local dirFiles = FS.ListFiles(dir)
         if dirFiles then
             for _, fileName in ipairs(dirFiles) do
@@ -154,16 +145,6 @@ function Tree.Utils.scanForPlugins(baseDir)
     end
     
     local plugins = {}
-    
-    if not FS then
-        print("^1[Tree Framework] Warning: FS library not available, plugin scanning disabled^r")
-        return plugins
-    end
-    
-    if not FS.Exists(baseDir) or not FS.IsDirectory(baseDir) then
-        print("^1[Tree Framework] Warning: Base directory does not exist: " .. baseDir .. "^r")
-        return plugins
-    end
     
     local directories = FS.ListDirectories(baseDir)
     if not directories then
