@@ -12,18 +12,17 @@ A lightweight BeamMP plugin framework inspired by FiveM's architecture.
 ## Quick Start
 
 1. Place the framework in your BeamMP server's `Resources/Server/` directory
-2. Edit `manifest.lua` with your project details
-3. Add your scripts to the `files/` directory
-4. BeamMP will load everything automatically
+2. Create your plugin folder next to Tree-BeamMP-Plugin
+3. Edit `manifest.lua` with your project details
+4. Add your scripts to the `files/` directory
+5. BeamMP will load everything automatically
 
 ## Structure
 
 ```
-Tree-BeamMP-Plugin/
-├── main.lua              # Framework entry point
+YourPlugin/
 ├── manifest.lua          # Project configuration
-├── _tree/                 # Framework internals
-└── files/                 # Your scripts go here
+└── files/                # Your scripts go here
     ├── init.lua
     └── modules/
         └── player.lua
@@ -52,7 +51,7 @@ playerCount = 0
 local secret = "private"
 
 -- files/modules/player.lua  
-print(playerCount)  -- Works
+print(playerCount)  -- Works! (global variable)
 print(secret)       -- nil (local variables stay private)
 ```
 
@@ -98,6 +97,10 @@ end
 - `Tree.Debug(...)` - Debug logging with table support
 - `Tree.GetInfo()` - Framework version and loaded files info
 - `Tree.LoadLib(name)` - Load native library from lib/ directory
+
+## Example
+
+An example plugin is included in the root directory. To use it, simply move the `example/` folder out of the Tree-BeamMP-Plugin directory.
 
 ## License
 
