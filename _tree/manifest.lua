@@ -1,0 +1,53 @@
+Tree = Tree or {}
+Tree.Manifest = {}
+
+local currentManifest = {}
+
+function Tree.Manifest.parse(manifestPath)
+    local file = io.open(manifestPath, "r")
+    if not file then
+        print("^1[Tree Framework] Could not open manifest: " .. manifestPath .. "^7")
+        return nil
+    end
+    
+    local content = file:read("*all")
+    file:close()
+    
+    if not content or content == "" then
+        print("^1[Tree Framework] Empty manifest: " .. manifestPath .. "^7")
+        return nil
+    end
+    
+    local manifestEnv = setmetatable({}, {
+        __newindex = function(t, k, v)
+            currentManifest[k] = v
+        end,
+        __index = _G
+    })
+    
+    currentManifest = {}
+    
+    local chunk, error = load(content, "@" .. manifestPath, "t", manifestEnv)
+    if not chunk then
+        print("^1[Tree Framework] Syntax error in manifest " .. manifestPath .. ": " .. tostring(error) .. "^7")
+        return nil
+    end
+    
+    local success, result = pcall(chunk)
+    if not success then
+        print("^1[Tree Framework] Runtime error in manifest " .. manifestPath .. ": " .. tostring(result) .. "^7")
+        return nil
+    end
+    
+    if not currentManifest.server_scripts then
+        print("^3[Tree Framework] Warning: No server_scripts specified in manifest^7")
+    end
+    
+    return currentManifest
+end
+
+function Tree.Manifest.getCurrent()
+    return currentManifest
+end
+
+
