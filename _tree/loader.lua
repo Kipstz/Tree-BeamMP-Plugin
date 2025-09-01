@@ -74,7 +74,6 @@ function Tree.Loader.loadFiles(patterns, basePath)
             table.insert(uniqueFiles, file)
         end
     end
-    table.sort(uniqueFiles)
     
     local loadedCount = 0
     for _, file in ipairs(uniqueFiles) do

@@ -91,9 +91,7 @@ function Tree.Utils.glob(pattern, basePath)
     local recursive = pattern:match("%*%*/") ~= nil
     
     scanDir(dir, filePattern, recursive)
-    
-    table.sort(files)
-    
+        
     return files
 end
 
