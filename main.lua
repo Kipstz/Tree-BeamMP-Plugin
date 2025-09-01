@@ -135,7 +135,7 @@ Tree.OnScriptLoaded = nil
 
 function Tree.Debug(...)
     local args = {...}
-    local message = "^5[Tree Debug]^7 "
+    local message = "^5[Tree Debug]^r "
     for i, arg in ipairs(args) do
         if type(arg) == "table" then
             message = message .. "Table:"
@@ -148,6 +148,52 @@ function Tree.Debug(...)
     if #args > 0 then
         print(message)
     end
+end
+
+function Tree.LoadLib(libName)
+    if not libName or type(libName) ~= "string" then
+        print("^4[Tree Framework] Error: Invalid library name^r")
+        return nil
+    end
+    
+    local isWindows = package.config:sub(1,1) == '\\'
+    local extension = isWindows and ".dll" or ".so"
+    local libPath = scriptDir .. "lib/" .. libName .. extension
+    
+    if not Tree.Utils.fileExists(libPath) then
+        print("^4[Tree Framework] Error: Library not found: " .. libPath .. "^r")
+        return nil
+    end
+    
+    local functionNames = {
+        "luaopen_" .. libName,
+        "luaopen_lib" .. libName,
+        libName .. "_init",
+        "init_" .. libName,
+        "open_" .. libName
+    }
+    
+    for _, funcName in ipairs(functionNames) do
+        local success, result = pcall(package.loadlib, libPath, funcName)
+        if success and result then
+            local initSuccess, lib = pcall(result)
+            if initSuccess then
+                print("^2[Tree Framework] Loaded library: " .. libName .. extension .. " (entry: " .. funcName .. ")^r")
+                return lib
+            else
+                print("^3[Tree Framework] Function " .. funcName .. " found but init failed: " .. tostring(lib) .. "^r")
+            end
+        end
+    end
+    
+    local success, result = pcall(require, libName)
+    if success then
+        print("^2[Tree Framework] Loaded library: " .. libName .. " via require^r")
+        return result
+    end
+    
+    print("^4[Tree Framework] Error: Unable to load library " .. libName .. "^r")
+    return nil
 end
 
 local manifestPath = scriptDir .. "manifest.lua"

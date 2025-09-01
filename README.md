@@ -60,10 +60,44 @@ print(secret)       -- nil (local variables stay private)
 
 Files load in the order specified in `server_scripts`. Use this to ensure dependencies load first.
 
+## Color Codes
+
+The framework supports BeamMP color codes in all print statements:
+
+```lua
+print("^2Green text^r and ^4red text^r")
+print("^lBold^r ^nunderlined^r ^oitalic^r text")
+```
+
+**Colors:**
+- `^0` black, `^1` blue, `^2` green, `^3` light blue, `^4` red, `^5` pink
+- `^6` orange, `^7` grey, `^8` dark grey, `^9` light purple
+- `^a` light green, `^b` light blue, `^c` dark orange, `^d` light pink
+- `^e` yellow, `^f` white
+
+**Effects:**
+- `^l` bold, `^n` underline, `^o` italic, `^m` strike-through
+- `^r` reset, `^p` newline
+
+## Native Libraries
+
+Place `.dll` (Windows) or `.so` (Linux) files in the `lib/` directory and load them:
+
+```lua
+-- Load json.dll on Windows or json.so on Linux
+local json = Tree.LoadLib("json")
+if json then
+    local data = json.encode({hello = "world"})
+end
+```
+
+**⚠️ Windows Note:** Native library loading is currently not working on Windows due to BeamMP's Lua environment limitations. Waiting for a future BeamMP patch to resolve this issue. Linux support may vary.
+
 ## API
 
 - `Tree.Debug(...)` - Debug logging with table support
 - `Tree.GetInfo()` - Framework version and loaded files info
+- `Tree.LoadLib(name)` - Load native library from lib/ directory
 
 ## License
 
