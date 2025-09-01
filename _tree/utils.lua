@@ -9,6 +9,7 @@ function Tree.Utils.getScriptDirectory()
     end
     return "./"
 end
+
 function Tree.Utils.resolvePath(basePath, relativePath)
     if not basePath or not relativePath then
         return relativePath or basePath or "./"
@@ -23,13 +24,18 @@ function Tree.Utils.resolvePath(basePath, relativePath)
     
     return basePath .. "/" .. relativePath
 end
+
 function Tree.Utils.fileExists(path)
-    local file = io.open(path, "r")
-    if file then
-        file:close()
-        return true
+    if FS and FS.Exists then
+        return FS.Exists(path) and FS.IsFile(path)
+    else
+        local file = io.open(path, "r")
+        if file then
+            file:close()
+            return true
+        end
+        return false
     end
-    return false
 end
 
 function Tree.Utils.glob(pattern, basePath)
@@ -45,43 +51,39 @@ function Tree.Utils.glob(pattern, basePath)
     end
     
     local function scanDir(dir, filePattern, recursive)
-        local windowsDir = dir:gsub("/", "\\")
-        local tempFile = "tree_temp_" .. os.time() .. "_" .. math.random(1000, 9999) .. ".txt"
-        
-        local command
-        if recursive then
-            command = 'dir /s /b "' .. windowsDir .. '\\*.lua" > ' .. tempFile .. ' 2>nul'
-        else
-            command = 'dir /b "' .. windowsDir .. '\\*.lua" > ' .. tempFile .. ' 2>nul'
-        end
-        
-        os.execute(command)
-        
-        local file = io.open(tempFile, "r")
-        if not file then
-            pcall(os.remove, tempFile)
+        if not FS then
+            print("^1[Tree Framework] Warning: FS library not available, functionality limited^r")
             return
         end
         
-        local result = file:read("*a")
-        file:close()
-        pcall(os.remove, tempFile)
+        if not FS.Exists(dir) or not FS.IsDirectory(dir) then
+            return
+        end
         
-        for line in result:gmatch("[^\r\n]+") do
-            if line:match("%.lua$") then
-                local normalizedPath = line:gsub("\\", "/")
-                
-                if not recursive and not line:match("^[A-Za-z]:") then
-                    normalizedPath = dir .. "/" .. line
-                end
-                
-                if filePattern == "*.lua" then
-                    table.insert(files, normalizedPath)
-                else
-                    local fileName = normalizedPath:match("([^/]+)$")
-                    if fileName and fileName:match(filePattern:gsub("%*", ".*"):gsub("%%", "%%%%")) then
-                        table.insert(files, normalizedPath)
+        local dirFiles = FS.ListFiles(dir)
+        if dirFiles then
+            for _, fileName in ipairs(dirFiles) do
+                if fileName:match("%.lua$") then
+                    local fullPath = dir .. "/" .. fileName
+                    
+                    if filePattern == "*.lua" then
+                        table.insert(files, fullPath)
+                    else
+                        local pattern_regex = filePattern:gsub("%*", ".*"):gsub("%%", "%%%%")
+                        if fileName:match(pattern_regex) then
+                            table.insert(files, fullPath)
+                        end
                     end
+                end
+            end
+        end
+        
+        if recursive then
+            local subDirs = FS.ListDirectories(dir)
+            if subDirs then
+                for _, subDir in ipairs(subDirs) do
+                    local fullSubDir = dir .. "/" .. subDir
+                    scanDir(fullSubDir, filePattern, recursive)
                 end
             end
         end
@@ -152,72 +154,34 @@ function Tree.Utils.scanForPlugins(baseDir)
     end
     
     local plugins = {}
-    local isWindows = package.config:sub(1,1) == '\\'
-    local tempScript, tempOut
     
-    if isWindows then
-        tempScript = "tree_scan_" .. os.time() .. "_" .. math.random(1000, 9999) .. ".bat"
-        tempOut = "tree_output_" .. os.time() .. "_" .. math.random(1000, 9999) .. ".txt"
-        
-        local windowsDir = baseDir:gsub("/", "\\")
-        local batFile = io.open(tempScript, "w")
-        if not batFile then
-            return plugins
-        end
-        
-        batFile:write('@echo off\n')
-        batFile:write('for /d %%i in ("' .. windowsDir .. '\\*") do (\n')
-        batFile:write('  if exist "%%i\\manifest.lua" echo %%i\n')
-        batFile:write(')\n')
-        batFile:close()
-        
-        os.execute(tempScript .. ' > ' .. tempOut .. ' 2>nul')
-    else
-        tempScript = "tree_scan_" .. os.time() .. "_" .. math.random(1000, 9999) .. ".sh"
-        tempOut = "tree_output_" .. os.time() .. "_" .. math.random(1000, 9999) .. ".txt"
-        
-        local shFile = io.open(tempScript, "w")
-        if not shFile then
-            return plugins
-        end
-        
-        shFile:write('#!/bin/bash\n')
-        shFile:write('for dir in "' .. baseDir .. '"/*; do\n')
-        shFile:write('  if [ -d "$dir" ] && [ -f "$dir/manifest.lua" ]; then\n')
-        shFile:write('    echo "$dir"\n')
-        shFile:write('  fi\n')
-        shFile:write('done\n')
-        shFile:close()
-        
-        os.execute('chmod +x ' .. tempScript)
-        os.execute('./' .. tempScript .. ' > ' .. tempOut .. ' 2>/dev/null')
+    if not FS then
+        print("^1[Tree Framework] Warning: FS library not available, plugin scanning disabled^r")
+        return plugins
     end
     
-    local file = io.open(tempOut, "r")
-    if file then
-        local result = file:read("*a")
-        file:close()
-        
-        for line in result:gmatch("[^\r\n]+") do
-            if line and line ~= "" then
-                local normalizedPath = line:gsub("\\", "/")
-                local pluginName = normalizedPath:match("([^/]+)$")
-                if pluginName then
-                    local manifestPath = normalizedPath .. "/manifest.lua"
-                    if Tree.Utils.fileExists(manifestPath) then
-                        table.insert(plugins, {
-                            name = pluginName,
-                            path = normalizedPath,
-                            manifest = manifestPath
-                        })
-                    end
-                end
-            end
-        end
+    if not FS.Exists(baseDir) or not FS.IsDirectory(baseDir) then
+        print("^1[Tree Framework] Warning: Base directory does not exist: " .. baseDir .. "^r")
+        return plugins
     end
     
-    pcall(os.remove, tempScript)
-    pcall(os.remove, tempOut)
+    local directories = FS.ListDirectories(baseDir)
+    if not directories then
+        return plugins
+    end
+    
+    for _, pluginName in ipairs(directories) do
+        local pluginPath = baseDir .. "/" .. pluginName
+        local manifestPath = pluginPath .. "/manifest.lua"
+        
+        if FS.Exists(manifestPath) and FS.IsFile(manifestPath) then
+            table.insert(plugins, {
+                name = pluginName,
+                path = pluginPath,
+                manifest = manifestPath
+            })
+        end
+    end
     
     return plugins
 end
@@ -246,4 +210,3 @@ function Tree.Utils.getCallingPlugin()
     
     return nil, nil
 end
-
