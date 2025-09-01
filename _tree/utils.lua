@@ -46,19 +46,26 @@ function Tree.Utils.glob(pattern, basePath)
     
     local function scanDir(dir, filePattern, recursive)
         local windowsDir = dir:gsub("/", "\\")
+        local tempFile = "tree_temp_" .. os.time() .. "_" .. math.random(1000, 9999) .. ".txt"
         
         local command
         if recursive then
-            command = 'dir /s /b "' .. windowsDir .. '\\*.lua" 2>nul'
+            command = 'dir /s /b "' .. windowsDir .. '\\*.lua" > ' .. tempFile .. ' 2>nul'
         else
-            command = 'dir /b "' .. windowsDir .. '\\*.lua" 2>nul'
+            command = 'dir /b "' .. windowsDir .. '\\*.lua" > ' .. tempFile .. ' 2>nul'
         end
         
-        local handle = io.popen(command)
-        if not handle then return end
+        os.execute(command)
         
-        local result = handle:read("*a")
-        handle:close()
+        local file = io.open(tempFile, "r")
+        if not file then
+            pcall(os.remove, tempFile)
+            return
+        end
+        
+        local result = file:read("*a")
+        file:close()
+        pcall(os.remove, tempFile)
         
         for line in result:gmatch("[^\r\n]+") do
             if line:match("%.lua$") then
@@ -145,33 +152,72 @@ function Tree.Utils.scanForPlugins(baseDir)
     end
     
     local plugins = {}
-    local windowsDir = baseDir:gsub("/", "\\")
+    local isWindows = package.config:sub(1,1) == '\\'
+    local tempScript, tempOut
     
-    local command = 'for /d %i in ("' .. windowsDir .. '\\*") do @if exist "%i\\manifest.lua" echo %i'
-    local handle = io.popen(command)
-    if not handle then
-        return plugins
+    if isWindows then
+        tempScript = "tree_scan_" .. os.time() .. "_" .. math.random(1000, 9999) .. ".bat"
+        tempOut = "tree_output_" .. os.time() .. "_" .. math.random(1000, 9999) .. ".txt"
+        
+        local windowsDir = baseDir:gsub("/", "\\")
+        local batFile = io.open(tempScript, "w")
+        if not batFile then
+            return plugins
+        end
+        
+        batFile:write('@echo off\n')
+        batFile:write('for /d %%i in ("' .. windowsDir .. '\\*") do (\n')
+        batFile:write('  if exist "%%i\\manifest.lua" echo %%i\n')
+        batFile:write(')\n')
+        batFile:close()
+        
+        os.execute(tempScript .. ' > ' .. tempOut .. ' 2>nul')
+    else
+        tempScript = "tree_scan_" .. os.time() .. "_" .. math.random(1000, 9999) .. ".sh"
+        tempOut = "tree_output_" .. os.time() .. "_" .. math.random(1000, 9999) .. ".txt"
+        
+        local shFile = io.open(tempScript, "w")
+        if not shFile then
+            return plugins
+        end
+        
+        shFile:write('#!/bin/bash\n')
+        shFile:write('for dir in "' .. baseDir .. '"/*; do\n')
+        shFile:write('  if [ -d "$dir" ] && [ -f "$dir/manifest.lua" ]; then\n')
+        shFile:write('    echo "$dir"\n')
+        shFile:write('  fi\n')
+        shFile:write('done\n')
+        shFile:close()
+        
+        os.execute('chmod +x ' .. tempScript)
+        os.execute('./' .. tempScript .. ' > ' .. tempOut .. ' 2>/dev/null')
     end
     
-    local result = handle:read("*a")
-    handle:close()
-    
-    for line in result:gmatch("[^\r\n]+") do
-        if line and line ~= "" then
-            local normalizedPath = line:gsub("\\", "/")
-            local pluginName = normalizedPath:match("([^/]+)$")
-            if pluginName then
-                local manifestPath = normalizedPath .. "/manifest.lua"
-                if Tree.Utils.fileExists(manifestPath) then
-                    table.insert(plugins, {
-                        name = pluginName,
-                        path = normalizedPath,
-                        manifest = manifestPath
-                    })
+    local file = io.open(tempOut, "r")
+    if file then
+        local result = file:read("*a")
+        file:close()
+        
+        for line in result:gmatch("[^\r\n]+") do
+            if line and line ~= "" then
+                local normalizedPath = line:gsub("\\", "/")
+                local pluginName = normalizedPath:match("([^/]+)$")
+                if pluginName then
+                    local manifestPath = normalizedPath .. "/manifest.lua"
+                    if Tree.Utils.fileExists(manifestPath) then
+                        table.insert(plugins, {
+                            name = pluginName,
+                            path = normalizedPath,
+                            manifest = manifestPath
+                        })
+                    end
                 end
             end
         end
     end
+    
+    pcall(os.remove, tempScript)
+    pcall(os.remove, tempOut)
     
     return plugins
 end
