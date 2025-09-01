@@ -2,6 +2,7 @@ Tree = Tree or {}
 Tree.Loader = {}
 
 local loadedFiles = {}
+local loadedPlugins = {}
 
 function Tree.Loader.expandPattern(pattern, basePath)
     basePath = basePath or "."
@@ -98,5 +99,84 @@ end
 
 function Tree.Loader.getLoadedFiles()
     return loadedFiles
+end
+
+function Tree.Loader.getLoadedPlugins()
+    return loadedPlugins
+end
+
+function Tree.Loader.loadPlugin(pluginInfo)
+    if not pluginInfo or not pluginInfo.manifest then
+        print("^1[Tree Framework] Invalid plugin info^7")
+        return false
+    end
+    
+    if loadedPlugins[pluginInfo.name] then
+        print("^3[Tree Framework] Plugin already loaded: " .. pluginInfo.name .. "^7")
+        return true
+    end
+    
+    local manifest = Tree.Manifest.parse(pluginInfo.manifest)
+    if not manifest then
+        print("^1[Tree Framework] Failed to parse manifest for plugin: " .. pluginInfo.name .. "^7")
+        return false
+    end
+    
+    local info = {}
+    if manifest.description then table.insert(info, manifest.description) end
+    if manifest.author then table.insert(info, "by " .. manifest.author) end
+    if manifest.version then table.insert(info, "v" .. manifest.version) end
+    
+    local pluginLabel = pluginInfo.name
+    if #info > 0 then
+        pluginLabel = pluginLabel .. " (" .. table.concat(info, " ") .. ")"
+    end
+    
+    print("^6[Tree Framework] Loading plugin: " .. pluginLabel .. "^7")
+    
+    local filesLoaded = Tree.Loader.loadFromManifest(manifest, pluginInfo.path .. "/")
+    
+    if filesLoaded > 0 then
+        loadedPlugins[pluginInfo.name] = {
+            info = pluginInfo,
+            manifest = manifest,
+            filesLoaded = filesLoaded
+        }
+        
+        print("^2[Tree Framework] Plugin loaded: " .. pluginInfo.name .. " (" .. filesLoaded .. " files)^7")
+        return true
+    else
+        print("^3[Tree Framework] Warning: No files loaded for plugin: " .. pluginInfo.name .. "^7")
+        return false
+    end
+end
+
+function Tree.Loader.loadAllPlugins(baseDir)
+    local plugins = Tree.Utils.scanForPlugins(baseDir)
+    local totalLoaded = 0
+    local totalFiles = 0
+    
+    if #plugins == 0 then
+        print("^3[Tree Framework] No plugins found in: " .. tostring(baseDir) .. "^7")
+        return 0
+    end
+    
+    print("^2[Tree Framework] Found " .. #plugins .. " plugin(s) to load^7")
+    
+    for _, plugin in ipairs(plugins) do
+        if Tree.Loader.loadPlugin(plugin) then
+            totalLoaded = totalLoaded + 1
+            local pluginData = loadedPlugins[plugin.name]
+            if pluginData then
+                totalFiles = totalFiles + pluginData.filesLoaded
+            end
+        end
+    end
+    
+    if totalLoaded > 0 then
+        print("^2[Tree Framework] Plugin system ready! " .. totalLoaded .. " plugin(s) loaded (" .. totalFiles .. " files total)^7")
+    end
+    
+    return totalLoaded
 end
 

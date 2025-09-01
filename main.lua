@@ -122,7 +122,8 @@ function Tree.GetInfo()
     return {
         version = Tree.Version,
         author = Tree.Author,
-        loadedFiles = Tree.Loader.getLoadedFiles()
+        loadedFiles = Tree.Loader.getLoadedFiles(),
+        loadedPlugins = Tree.Loader.getLoadedPlugins()
     }
 end
 
@@ -158,12 +159,7 @@ function Tree.LoadLib(libName)
     
     local isWindows = package.config:sub(1,1) == '\\'
     local extension = isWindows and ".dll" or ".so"
-    local libPath = scriptDir .. "lib/" .. libName .. extension
-    
-    if not Tree.Utils.fileExists(libPath) then
-        print("^4[Tree Framework] Error: Library not found: " .. libPath .. "^r")
-        return nil
-    end
+    local fileName = libName .. extension
     
     local functionNames = {
         "luaopen_" .. libName,
@@ -173,17 +169,36 @@ function Tree.LoadLib(libName)
         "open_" .. libName
     }
     
-    for _, funcName in ipairs(functionNames) do
-        local success, result = pcall(package.loadlib, libPath, funcName)
-        if success and result then
-            local initSuccess, lib = pcall(result)
-            if initSuccess then
-                print("^2[Tree Framework] Loaded library: " .. libName .. extension .. " (entry: " .. funcName .. ")^r")
-                return lib
-            else
-                print("^3[Tree Framework] Function " .. funcName .. " found but init failed: " .. tostring(lib) .. "^r")
+    local function tryLoadLib(libPath, source)
+        if not Tree.Utils.fileExists(libPath) then
+            return nil
+        end
+        
+        for _, funcName in ipairs(functionNames) do
+            local success, result = pcall(package.loadlib, libPath, funcName)
+            if success and result then
+                local initSuccess, lib = pcall(result)
+                if initSuccess then
+                    print("^2[Tree Framework] Loaded library: " .. fileName .. " from " .. source .. " (entry: " .. funcName .. ")^r")
+                    return lib
+                else
+                    print("^3[Tree Framework] Function " .. funcName .. " found but init failed: " .. tostring(lib) .. "^r")
+                end
             end
         end
+        
+        return nil
+    end
+    
+    local pluginName, pluginPath = Tree.Utils.getCallingPlugin()
+    
+    if pluginName and pluginPath then
+        local pluginLibPath = pluginPath .. "/lib/" .. fileName
+        local lib = tryLoadLib(pluginLibPath, "plugin " .. pluginName)
+        if lib then
+            return lib
+        end
+        print("^3[Tree Framework] Library not found in plugin " .. pluginName .. ": " .. pluginLibPath .. "^r")
     end
     
     local success, result = pcall(require, libName)
@@ -192,14 +207,18 @@ function Tree.LoadLib(libName)
         return result
     end
     
-    print("^4[Tree Framework] Error: Unable to load library " .. libName .. "^r")
+    print("^4[Tree Framework] Error: Unable to load library " .. libName .. " (searched plugin libs and system)^r")
     return nil
 end
 
-local manifestPath = scriptDir .. "manifest.lua"
-if Tree.Utils.fileExists(manifestPath) then
-    Tree.Init(manifestPath)
+print("^2[Tree Framework] Scanning for plugins...^7")
+
+local parentDir = Tree.Utils.getParentDirectory(scriptDir)
+if parentDir then
+    Tree.Loader.loadAllPlugins(parentDir)
 else
-    print("^3[Tree Framework] No manifest.lua found^7")
+    print("^1[Tree Framework] Could not determine parent directory for plugin scanning^7")
 end
+Wait = MP.Sleep
+
 _G.Tree = Tree

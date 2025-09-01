@@ -128,3 +128,76 @@ function Tree.Utils.copyTable(original)
     return copy
 end
 
+function Tree.Utils.getParentDirectory(path)
+    if not path then return nil end
+    
+    path = path:gsub("\\", "/"):gsub("/$", "")
+    local parent = path:match("(.+)/[^/]+$")
+    if not parent then
+        return nil
+    end
+    return parent
+end
+
+function Tree.Utils.scanForPlugins(baseDir)
+    if not baseDir then
+        return {}
+    end
+    
+    local plugins = {}
+    local windowsDir = baseDir:gsub("/", "\\")
+    
+    local command = 'for /d %i in ("' .. windowsDir .. '\\*") do @if exist "%i\\manifest.lua" echo %i'
+    local handle = io.popen(command)
+    if not handle then
+        return plugins
+    end
+    
+    local result = handle:read("*a")
+    handle:close()
+    
+    for line in result:gmatch("[^\r\n]+") do
+        if line and line ~= "" then
+            local normalizedPath = line:gsub("\\", "/")
+            local pluginName = normalizedPath:match("([^/]+)$")
+            if pluginName then
+                local manifestPath = normalizedPath .. "/manifest.lua"
+                if Tree.Utils.fileExists(manifestPath) then
+                    table.insert(plugins, {
+                        name = pluginName,
+                        path = normalizedPath,
+                        manifest = manifestPath
+                    })
+                end
+            end
+        end
+    end
+    
+    return plugins
+end
+
+function Tree.Utils.getCallingPlugin()
+    local loadedPlugins = Tree.Loader.getLoadedPlugins()
+    
+    for level = 2, 10 do
+        local info = debug.getinfo(level, "S")
+        if not info or not info.source then
+            break
+        end
+        
+        local source = info.source
+        if source:sub(1, 1) == "@" then
+            source = source:sub(2):gsub("\\", "/")
+            
+            for pluginName, pluginData in pairs(loadedPlugins) do
+                local pluginPath = pluginData.info.path:gsub("\\", "/")
+                if source:find(pluginPath, 1, true) == 1 then
+                    return pluginName, pluginPath
+                end
+            end
+        end
+    end
+    
+    return nil, nil
+end
+
