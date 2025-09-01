@@ -12,17 +12,18 @@ A lightweight BeamMP plugin framework inspired by FiveM's architecture.
 ## Quick Start
 
 1. Place the framework in your BeamMP server's `Resources/Server/` directory
-2. Create your plugin folder next to Tree-BeamMP-Plugin
-3. Edit `manifest.lua` with your project details
-4. Add your scripts to the `files/` directory
-5. BeamMP will load everything automatically
+2. Edit `manifest.lua` with your project details
+3. Add your scripts to the `files/` directory
+4. BeamMP will load everything automatically
 
 ## Structure
 
 ```
-YourPlugin/
+Tree-BeamMP-Plugin/
+├── main.lua              # Framework entry point
 ├── manifest.lua          # Project configuration
-└── files/                # Your scripts go here
+├── _tree/                 # Framework internals
+└── files/                 # Your scripts go here
     ├── init.lua
     └── modules/
         └── player.lua
@@ -51,7 +52,7 @@ playerCount = 0
 local secret = "private"
 
 -- files/modules/player.lua  
-print(playerCount)  -- Works! (global variable)
+print(playerCount)  -- Works
 print(secret)       -- nil (local variables stay private)
 ```
 
@@ -98,9 +99,32 @@ end
 - `Tree.GetInfo()` - Framework version and loaded files info
 - `Tree.LoadLib(name)` - Load native library from lib/ directory
 
-## Example
+## Complete Example
 
-An example plugin is included in the root directory. To use it, simply move the `example/` folder out of the Tree-BeamMP-Plugin directory.
+A complete example plugin is provided to demonstrate framework usage. To test it:
+
+1. **Copy the ExamplePlugin folder** (located next to Tree-BeamMP-Plugin) to your `Resources/Server/` directory
+2. **Restart your BeamMP server** - the Tree Framework will automatically load the plugin
+3. **Watch the console** for colorized demonstrations
+
+The example plugin demonstrates:
+- ✅ **Global vs Local Variables** - How variables are shared between files
+- 🎨 **All BeamMP Color Codes** - Complete demonstration of 16 colors and effects
+- 👥 **Player Simulation** - Connections/disconnections with colored counters
+- 🐛 **Testing & Debug** - Functions to test variable sharing
+
+```bash
+# Example structure:
+ExamplePlugin/
+├── manifest.lua           # Configuration
+└── files/
+    ├── init.lua          # Variables + basic colors
+    └── modules/
+        ├── player.lua    # Variable tests + player management
+        └── debug.lua     # Complete tests + simulation
+```
+
+**Expected Output:** The plugin automatically displays colorized tests showing that global variables are shared between files but local variables are not, plus a complete demonstration of all available colors.
 
 ## License
 

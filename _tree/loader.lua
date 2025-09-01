@@ -134,18 +134,21 @@ function Tree.Loader.loadPlugin(pluginInfo)
     
     print("^6[Tree Framework] Loading plugin: " .. pluginLabel .. "^7")
     
+    loadedPlugins[pluginInfo.name] = {
+        info = pluginInfo,
+        manifest = manifest,
+        filesLoaded = 0
+    }
+    
     local filesLoaded = Tree.Loader.loadFromManifest(manifest, pluginInfo.path .. "/")
     
     if filesLoaded > 0 then
-        loadedPlugins[pluginInfo.name] = {
-            info = pluginInfo,
-            manifest = manifest,
-            filesLoaded = filesLoaded
-        }
+        loadedPlugins[pluginInfo.name].filesLoaded = filesLoaded
         
         print("^2[Tree Framework] Plugin loaded: " .. pluginInfo.name .. " (" .. filesLoaded .. " files)^7")
         return true
     else
+        loadedPlugins[pluginInfo.name] = nil
         print("^3[Tree Framework] Warning: No files loaded for plugin: " .. pluginInfo.name .. "^7")
         return false
     end

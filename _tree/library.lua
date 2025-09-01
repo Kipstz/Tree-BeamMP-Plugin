@@ -26,8 +26,10 @@ function Tree.LoadLib(libName)
         
         for _, funcName in ipairs(functionNames) do
             local success, result = pcall(package.loadlib, libPath, funcName)
+            
             if success and result then
                 local initSuccess, lib = pcall(result)
+                
                 if initSuccess then
                     print("^2[Tree Framework] Loaded library: " .. fileName .. " from " .. source .. " (entry: " .. funcName .. ")^r")
                     return lib
@@ -41,7 +43,7 @@ function Tree.LoadLib(libName)
     end
     
     local pluginName, pluginPath = Tree.Utils.getCallingPlugin()
-    
+
     if pluginName and pluginPath then
         local pluginLibPath = pluginPath .. "/lib/" .. fileName
         local lib = tryLoadLib(pluginLibPath, "plugin " .. pluginName)
@@ -52,6 +54,7 @@ function Tree.LoadLib(libName)
     end
     
     local success, result = pcall(require, libName)
+    
     if success then
         print("^2[Tree Framework] Loaded library: " .. libName .. " via require^r")
         return result

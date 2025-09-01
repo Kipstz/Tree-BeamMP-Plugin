@@ -26,7 +26,6 @@ end
 
 local scriptDir = getScriptDir()
 
--- Load core modules
 dofile(scriptDir .. "_tree/utils.lua")
 dofile(scriptDir .. "_tree/manifest.lua")
 dofile(scriptDir .. "_tree/loader.lua")
@@ -34,12 +33,10 @@ dofile(scriptDir .. "_tree/colors.lua")
 dofile(scriptDir .. "_tree/threads.lua")
 dofile(scriptDir .. "_tree/library.lua")
 
--- Initialize colors
 Tree.Colors.init()
 
 print("^2[Tree Framework] v1.0.0 - BeamMP Plugin System^r")
 
--- Core API functions
 function Tree.Init(manifestPath)
     if not manifestPath then
         print("^1[Tree Framework] Error: No manifest path provided^7")
@@ -70,9 +67,25 @@ function Tree.Init(manifestPath)
     end
     
     local scriptBasePath = fullManifestPath:match("(.*[/\\])")
+    
+    local pluginName = scriptBasePath:match("([^/\\]+)[/\\]*$") or "unknown"
+    local loadedPlugins = Tree.Loader.getLoadedPlugins()
+    
+    loadedPlugins[pluginName] = {
+        info = {
+            name = pluginName,
+            path = scriptBasePath,
+            manifest = fullManifestPath
+        },
+        manifest = manifest,
+        filesLoaded = 0
+    }
+    
     local filesLoaded = Tree.Loader.loadFromManifest(manifest, scriptBasePath)
     
     if filesLoaded > 0 then
+        loadedPlugins[pluginName].filesLoaded = filesLoaded
+        
         print("^2[Tree Framework] Ready! " .. filesLoaded .. " files loaded^7")
         
         if Tree.OnScriptLoaded then
@@ -81,6 +94,7 @@ function Tree.Init(manifestPath)
         
         return true
     else
+        loadedPlugins[pluginName] = nil
         print("^3[Tree Framework] Warning: No files were loaded^7")
         return false
     end
