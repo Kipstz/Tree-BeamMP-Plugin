@@ -57,9 +57,15 @@ function Tree.LoadLib(libName)
         local loadedPlugins = Tree.Loader.getLoadedPlugins()
         local pluginData = loadedPlugins[pluginName]
         local libDir = "lib"
+        local luaDir = "lua"
         
-        if pluginData and pluginData.manifest and pluginData.manifest.lib_dir then
-            libDir = pluginData.manifest.lib_dir
+        if pluginData and pluginData.manifest then
+            if pluginData.manifest.lib_dir then
+                libDir = pluginData.manifest.lib_dir
+            end
+            if pluginData.manifest.lua_dir then
+                luaDir = pluginData.manifest.lua_dir
+            end
         end
         
         local pluginLibPath = pluginPath .. "/" .. libDir .. "/" .. libPath .. fileName
@@ -67,13 +73,26 @@ function Tree.LoadLib(libName)
         if lib then
             return lib
         end
+        
+        local originalPath = package.path
+        local pluginLuaPath = pluginPath .. "/" .. luaDir .. "/?.lua;" .. pluginPath .. "/" .. luaDir .. "/?/init.lua"
+        package.path = pluginLuaPath .. ";" .. package.path
+        
+        local success, result = pcall(require, baseName)
+        package.path = originalPath
+        
+        if success then
+            print("^2[Tree Framework] Loaded library: " .. baseName .. " via plugin require^r")
+            return result
+        end
+        
         print("^3[Tree Framework] Library not found in plugin " .. pluginName .. ": " .. pluginLibPath .. "^r")
     end
     
     local success, result = pcall(require, baseName)
     
     if success then
-        print("^2[Tree Framework] Loaded library: " .. baseName .. " via require^r")
+        print("^2[Tree Framework] Loaded library: " .. baseName .. " via system require^r")
         return result
     end
     

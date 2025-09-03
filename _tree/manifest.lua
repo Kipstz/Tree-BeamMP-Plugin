@@ -45,6 +45,7 @@ function Tree.Manifest.parse(manifestPath)
     
     currentManifest.files_dir = currentManifest.files_dir or "files"
     currentManifest.lib_dir = currentManifest.lib_dir or "lib"
+    currentManifest.lua_dir = currentManifest.lua_dir or "lua"
     currentManifest.print_prefix = currentManifest.print_prefix or ""
     
     return currentManifest
