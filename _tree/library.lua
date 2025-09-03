@@ -9,14 +9,23 @@ function Tree.LoadLib(libName)
     
     local isWindows = package.config:sub(1,1) == '\\'
     local extension = isWindows and ".dll" or ".so"
-    local fileName = libName .. extension
+    
+    local libPath, baseName = libName:match("^(.+)/([^/]+)$")
+    if not libPath then
+        libPath = ""
+        baseName = libName
+    else
+        libPath = libPath .. "/"
+    end
+    
+    local fileName = baseName .. extension
     
     local functionNames = {
-        "luaopen_" .. libName,
-        "luaopen_lib" .. libName,
-        libName .. "_init",
-        "init_" .. libName,
-        "open_" .. libName
+        "luaopen_" .. baseName,
+        "luaopen_lib" .. baseName,
+        baseName .. "_init",
+        "init_" .. baseName,
+        "open_" .. baseName
     }
     
     local function tryLoadLib(libPath, source)
@@ -45,7 +54,7 @@ function Tree.LoadLib(libName)
     local pluginName, pluginPath = Tree.Utils.getCallingPlugin()
 
     if pluginName and pluginPath then
-        local pluginLibPath = pluginPath .. "/lib/" .. fileName
+        local pluginLibPath = pluginPath .. "/lib/" .. libPath .. fileName
         local lib = tryLoadLib(pluginLibPath, "plugin " .. pluginName)
         if lib then
             return lib
@@ -53,10 +62,10 @@ function Tree.LoadLib(libName)
         print("^3[Tree Framework] Library not found in plugin " .. pluginName .. ": " .. pluginLibPath .. "^r")
     end
     
-    local success, result = pcall(require, libName)
+    local success, result = pcall(require, baseName)
     
     if success then
-        print("^2[Tree Framework] Loaded library: " .. libName .. " via require^r")
+        print("^2[Tree Framework] Loaded library: " .. baseName .. " via require^r")
         return result
     end
     
