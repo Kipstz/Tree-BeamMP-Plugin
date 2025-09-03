@@ -54,7 +54,15 @@ function Tree.LoadLib(libName)
     local pluginName, pluginPath = Tree.Utils.getCallingPlugin()
 
     if pluginName and pluginPath then
-        local pluginLibPath = pluginPath .. "/lib/" .. libPath .. fileName
+        local loadedPlugins = Tree.Loader.getLoadedPlugins()
+        local pluginData = loadedPlugins[pluginName]
+        local libDir = "lib"
+        
+        if pluginData and pluginData.manifest and pluginData.manifest.lib_dir then
+            libDir = pluginData.manifest.lib_dir
+        end
+        
+        local pluginLibPath = pluginPath .. "/" .. libDir .. "/" .. libPath .. fileName
         local lib = tryLoadLib(pluginLibPath, "plugin " .. pluginName)
         if lib then
             return lib

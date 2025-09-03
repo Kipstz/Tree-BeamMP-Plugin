@@ -5,3 +5,5 @@ print(hole)
 
 Wait(2500)
 print("qzdzqdzqdqzd")
+
+local test = Tree.LoadLib("caca")

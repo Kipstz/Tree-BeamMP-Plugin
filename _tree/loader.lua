@@ -4,15 +4,17 @@ Tree.Loader = {}
 local loadedFiles = {}
 local loadedPlugins = {}
 
-function Tree.Loader.expandPattern(pattern, basePath)
+function Tree.Loader.expandPattern(pattern, basePath, manifest)
     basePath = basePath or "."
+    manifest = manifest or {}
     
-    pattern = "files/" .. pattern
+    local filesDir = manifest.files_dir or "files"
+    pattern = filesDir .. "/" .. pattern
     
     return Tree.Utils.glob(pattern, basePath)
 end
 
-function Tree.Loader.loadFile(filepath)
+function Tree.Loader.loadFile(filepath, manifest)
     local normalizedPath = filepath:gsub("\\", "/")
     
     if loadedFiles[normalizedPath] then
@@ -34,7 +36,24 @@ function Tree.Loader.loadFile(filepath)
         return true
     end
     
-    local chunk, error = load(content, "@" .. filepath)
+    local env = _G
+    if manifest and manifest.print_prefix and manifest.print_prefix ~= "" then
+        env = setmetatable({}, {__index = _G})
+        local originalPrint = print
+        env.print = function(...)
+            local args = {...}
+            local message = ""
+            for i, arg in ipairs(args) do
+                message = message .. tostring(arg)
+                if i < #args then
+                    message = message .. "\t"
+                end
+            end
+            originalPrint(manifest.print_prefix .. message)
+        end
+    end
+    
+    local chunk, error = load(content, "@" .. filepath, "t", env)
     if not chunk then
         print("^1[Tree Framework] Syntax error in " .. filepath .. ": " .. tostring(error) .. "^7")
         return false
@@ -50,8 +69,9 @@ function Tree.Loader.loadFile(filepath)
     return true
 end
 
-function Tree.Loader.loadFiles(patterns, basePath)
+function Tree.Loader.loadFiles(patterns, basePath, manifest)
     basePath = basePath or "."
+    manifest = manifest or {}
     
     if type(patterns) == "string" then
         patterns = {patterns}
@@ -60,7 +80,7 @@ function Tree.Loader.loadFiles(patterns, basePath)
     local allFiles = {}
     
     for _, pattern in ipairs(patterns) do
-        local files = Tree.Loader.expandPattern(pattern, basePath)
+        local files = Tree.Loader.expandPattern(pattern, basePath, manifest)
         for _, file in ipairs(files) do
             table.insert(allFiles, file)
         end
@@ -77,7 +97,7 @@ function Tree.Loader.loadFiles(patterns, basePath)
     
     local loadedCount = 0
     for _, file in ipairs(uniqueFiles) do
-        if Tree.Loader.loadFile(file) then
+        if Tree.Loader.loadFile(file, manifest) then
             loadedCount = loadedCount + 1
         end
     end
@@ -91,7 +111,7 @@ function Tree.Loader.loadFromManifest(manifest, scriptPath)
     local totalLoaded = 0
     
     if manifest.server_scripts then
-        totalLoaded = totalLoaded + Tree.Loader.loadFiles(manifest.server_scripts, basePath)
+        totalLoaded = totalLoaded + Tree.Loader.loadFiles(manifest.server_scripts, basePath, manifest)
     end
     return totalLoaded
 end

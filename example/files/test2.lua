@@ -28,10 +28,8 @@ print("^2Mixed ^4colors ^l^6with ^n^ebold ^o^aand ^m^deffects^r")
 print("cocococuococuuocc")
 
 CreateThread(function()
-    while true do
       Wait(1000)
       print("coucouc")
-    end
 end)
 
 print("caca")

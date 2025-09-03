@@ -43,6 +43,10 @@ function Tree.Manifest.parse(manifestPath)
         print("^3[Tree Framework] Warning: No server_scripts specified in manifest^7")
     end
     
+    currentManifest.files_dir = currentManifest.files_dir or "files"
+    currentManifest.lib_dir = currentManifest.lib_dir or "lib"
+    currentManifest.print_prefix = currentManifest.print_prefix or ""
+    
     return currentManifest
 end
 
