@@ -25,7 +25,8 @@ function Tree.LoadLib(libName)
         "luaopen_lib" .. baseName,
         baseName .. "_init",
         "init_" .. baseName,
-        "open_" .. baseName
+        "open_" .. baseName,
+        "luaopen_mime_core"
     }
     
     local function tryLoadLib(libPath, source)
