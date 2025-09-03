@@ -1,8 +1,14 @@
+---@meta
+
 Tree = Tree or {}
+
+---Color code support for BeamMP console output
+---@class Tree.Colors
 Tree.Colors = {}
 
 local originalPrint = print
 
+---BeamMP color code to ANSI escape sequence mapping
 local colors = {
     ["^r"] = "\27[0m",     -- reset
     ["^p"] = "\n",         -- newline
@@ -28,6 +34,7 @@ local colors = {
     ["^f"] = "\27[97m"     -- white
 }
 
+---Initialize color code support by overriding the global print function
 function Tree.Colors.init()
     print = function(...)
         local args = {...}

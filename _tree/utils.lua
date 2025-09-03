@@ -1,6 +1,13 @@
+---@meta
+
 Tree = Tree or {}
+
+---Utility functions for the Tree Framework
+---@class Tree.Utils
 Tree.Utils = {}
 
+---Get the directory of the calling script
+---@return string directory The directory path of the calling script
 function Tree.Utils.getScriptDirectory()
     local info = debug.getinfo(2, "S")
     if info and info.source then
@@ -10,6 +17,10 @@ function Tree.Utils.getScriptDirectory()
     return "./"
 end
 
+---Resolve a relative path against a base path
+---@param basePath string The base directory path
+---@param relativePath string The relative path to resolve
+---@return string resolvedPath The resolved absolute path
 function Tree.Utils.resolvePath(basePath, relativePath)
     if not basePath or not relativePath then
         return relativePath or basePath or "./"
@@ -25,6 +36,9 @@ function Tree.Utils.resolvePath(basePath, relativePath)
     return basePath .. "/" .. relativePath
 end
 
+---Check if a file exists at the given path
+---@param path string The file path to check
+---@return boolean exists True if the file exists, false otherwise
 function Tree.Utils.fileExists(path)
     if FS and FS.Exists then
         return FS.Exists(path) and FS.IsFile(path)
@@ -38,6 +52,10 @@ function Tree.Utils.fileExists(path)
     end
 end
 
+---Find files matching a glob pattern
+---@param pattern string Glob pattern with * and ? wildcards
+---@param basePath string? Base directory to search from (default: ".")
+---@return table files Array of matching file paths
 function Tree.Utils.glob(pattern, basePath)
     basePath = basePath or "."
     local files = {}
@@ -95,6 +113,9 @@ function Tree.Utils.glob(pattern, basePath)
     return files
 end
 
+---Print a table with proper indentation and formatting
+---@param t table The table to print
+---@param indent number? Current indentation level (default: 0)
 function Tree.Utils.printTable(t, indent)
     indent = indent or 0
     local spacing = string.rep("  ", indent)
@@ -114,6 +135,9 @@ function Tree.Utils.printTable(t, indent)
     end
 end
 
+---Create a deep copy of a table
+---@param original table The table to copy
+---@return table copy The copied table
 function Tree.Utils.copyTable(original)
     local copy = {}
     for k, v in pairs(original) do
@@ -126,6 +150,9 @@ function Tree.Utils.copyTable(original)
     return copy
 end
 
+---Get the number of elements in a table
+---@param t table The table to count
+---@return number count The number of elements in the table
 function Tree.Utils.tableLength(t)
     if not t or type(t) ~= "table" then
         return 0
@@ -138,6 +165,9 @@ function Tree.Utils.tableLength(t)
     return count
 end
 
+---Get the parent directory of a path
+---@param path string The path to get the parent of
+---@return string|nil parent The parent directory path, or nil if no parent
 function Tree.Utils.getParentDirectory(path)
     if not path then return nil end
     
@@ -149,6 +179,9 @@ function Tree.Utils.getParentDirectory(path)
     return parent
 end
 
+---Scan a directory for plugins (directories containing manifest.lua)
+---@param baseDir string The base directory to scan
+---@return table plugins Array of plugin info tables with name, path, and manifest fields
 function Tree.Utils.scanForPlugins(baseDir)
     if not baseDir then
         return {}
@@ -175,6 +208,9 @@ function Tree.Utils.scanForPlugins(baseDir)
     return plugins
 end
 
+---Get the plugin that is calling the current function
+---@return string|nil pluginName The name of the calling plugin
+---@return string|nil pluginPath The path of the calling plugin
 function Tree.Utils.getCallingPlugin()
     local loadedPlugins = Tree.Loader.getLoadedPlugins()
     

@@ -1,7 +1,20 @@
+---@meta
+
+---Tree Framework - A lightweight BeamMP plugin framework
+---@class Tree
+---@field Version string Framework version
+---@field Author string Framework author
+---@field Colors table Color utilities
+---@field Utils table Utility functions
+---@field Manifest table Manifest parsing functions
+---@field Loader table Plugin loading functions
+---@field OnScriptLoaded function|nil Callback when a script is loaded
 Tree = Tree or {}
-Tree.Version = "0.0.1"
+Tree.Version = "0.0.2"
 Tree.Author = "Tree Framework Team"
 
+---Get the directory path of the current script
+---@return string scriptDir The directory containing the script
 local function getScriptDir()
     local info = debug.getinfo(1, "S")
     if info and info.source then
@@ -37,6 +50,9 @@ Tree.Colors.init()
 
 print("^2[Tree Framework] v1.0.0 - BeamMP Plugin System^r")
 
+---Initialize a plugin from its manifest file
+---@param manifestPath string Path to the manifest.lua file
+---@return boolean success True if initialization succeeded, false otherwise
 function Tree.Init(manifestPath)
     if not manifestPath then
         print("^1[Tree Framework] Error: No manifest path provided^7")
@@ -100,6 +116,8 @@ function Tree.Init(manifestPath)
     end
 end
 
+---Get framework information and status
+---@return table info Framework information including version, author, loaded files and plugins
 function Tree.GetInfo()
     return {
         version = Tree.Version,
@@ -109,11 +127,16 @@ function Tree.GetInfo()
     }
 end
 
+---Load a script from a directory containing a manifest.lua file
+---@param scriptPath string Path to directory containing manifest.lua
+---@return boolean success True if script was loaded successfully
 function Tree.LoadScript(scriptPath)
     local manifestPath = scriptPath .. "/manifest.lua"
     return Tree.Init(manifestPath)
 end
 
+---Debug logging with table support and color formatting
+---@param ... any Arguments to debug (supports tables, strings, numbers, etc.)
 function Tree.Debug(...)
     local args = {...}
     local message = "^5[Tree Debug]^r "

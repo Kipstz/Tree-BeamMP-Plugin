@@ -1,9 +1,19 @@
+---@meta
+
 Tree = Tree or {}
+
+---Plugin loading system for the Tree Framework
+---@class Tree.Loader
 Tree.Loader = {}
 
 local loadedFiles = {}
 local loadedPlugins = {}
 
+---Expand a file pattern using glob matching within the plugin's files directory
+---@param pattern string File pattern to expand (e.g., "*.lua", "modules/*.lua")
+---@param basePath string? Base path for the plugin (default: ".")
+---@param manifest table? Plugin manifest containing files_dir setting
+---@return table files Array of matching file paths
 function Tree.Loader.expandPattern(pattern, basePath, manifest)
     basePath = basePath or "."
     manifest = manifest or {}
@@ -14,6 +24,10 @@ function Tree.Loader.expandPattern(pattern, basePath, manifest)
     return Tree.Utils.glob(pattern, basePath)
 end
 
+---Load a single Lua file with optional print prefix from manifest
+---@param filepath string Path to the Lua file to load
+---@param manifest table? Plugin manifest for print prefix configuration
+---@return boolean success True if file was loaded successfully
 function Tree.Loader.loadFile(filepath, manifest)
     local normalizedPath = filepath:gsub("\\", "/")
     
@@ -69,6 +83,11 @@ function Tree.Loader.loadFile(filepath, manifest)
     return true
 end
 
+---Load multiple files matching the given patterns
+---@param patterns string|table Pattern or array of patterns to match
+---@param basePath string? Base path for pattern matching (default: ".")
+---@param manifest table? Plugin manifest for configuration
+---@return number loadedCount Number of files successfully loaded
 function Tree.Loader.loadFiles(patterns, basePath, manifest)
     basePath = basePath or "."
     manifest = manifest or {}
@@ -105,6 +124,10 @@ function Tree.Loader.loadFiles(patterns, basePath, manifest)
     return loadedCount
 end
 
+---Load files from a parsed manifest
+---@param manifest table Parsed manifest containing server_scripts
+---@param scriptPath string? Base path for the plugin scripts
+---@return number totalLoaded Total number of files loaded
 function Tree.Loader.loadFromManifest(manifest, scriptPath)
     local basePath = scriptPath or Tree.Utils.getScriptDirectory() or "."
     
@@ -116,14 +139,21 @@ function Tree.Loader.loadFromManifest(manifest, scriptPath)
     return totalLoaded
 end
 
+---Get the registry of loaded files
+---@return table loadedFiles Registry of loaded file paths
 function Tree.Loader.getLoadedFiles()
     return loadedFiles
 end
 
+---Get the registry of loaded plugins
+---@return table loadedPlugins Registry of loaded plugin data
 function Tree.Loader.getLoadedPlugins()
     return loadedPlugins
 end
 
+---Load a single plugin from plugin info
+---@param pluginInfo table Plugin info with name, path, and manifest fields
+---@return boolean success True if plugin was loaded successfully
 function Tree.Loader.loadPlugin(pluginInfo)
     if not pluginInfo or not pluginInfo.manifest then
         print("^1[Tree Framework] Invalid plugin info^7")
@@ -173,6 +203,9 @@ function Tree.Loader.loadPlugin(pluginInfo)
     end
 end
 
+---Discover and load all plugins in a directory
+---@param baseDir string Base directory to scan for plugins
+---@return number totalLoaded Number of plugins successfully loaded
 function Tree.Loader.loadAllPlugins(baseDir)
     local plugins = Tree.Utils.scanForPlugins(baseDir)
     local totalLoaded = 0

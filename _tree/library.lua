@@ -1,6 +1,14 @@
+---@meta
+
 Tree = Tree or {}
+
+---Native library loading system for the Tree Framework
+---@class Tree.Library
 Tree.Library = {}
 
+---Load a native library from plugin lib directory or system
+---@param libName string Name of the library to load (without extension)
+---@return any|nil lib The loaded library module, or nil on error
 function Tree.LoadLib(libName)
     if not libName or type(libName) ~= "string" then
         print("^4[Tree Framework] Error: Invalid library name^r")
@@ -82,6 +90,8 @@ function Tree.LoadLib(libName)
     return nil
 end
 
+---Get a list of all loaded libraries
+---@return table libraries Array of loaded library names
 function Tree.Library.getLoadedLibraries()
     local loaded = {}
     for name, _ in pairs(package.loaded) do

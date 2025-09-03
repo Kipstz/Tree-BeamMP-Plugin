@@ -1,8 +1,16 @@
+---@meta
+
 Tree = Tree or {}
+
+---Manifest parsing system for the Tree Framework
+---@class Tree.Manifest
 Tree.Manifest = {}
 
 local currentManifest = {}
 
+---Parse a manifest.lua file in a sandboxed environment
+---@param manifestPath string Path to the manifest.lua file
+---@return table|nil manifest Parsed manifest table or nil on error
 function Tree.Manifest.parse(manifestPath)
     local file = io.open(manifestPath, "r")
     if not file then
@@ -50,6 +58,8 @@ function Tree.Manifest.parse(manifestPath)
     return currentManifest
 end
 
+---Get the currently parsed manifest
+---@return table currentManifest The last parsed manifest table
 function Tree.Manifest.getCurrent()
     return currentManifest
 end
