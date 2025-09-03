@@ -40,3 +40,22 @@ function Tree.Threads.getThreadCount()
     end
     return count
 end
+
+function SetTimeout(milliseconds, func)
+    if type(milliseconds) ~= "number" or milliseconds < 0 then
+        print("^1[Tree Framework] Error: SetTimeout expects a positive number for milliseconds^r")
+        return
+    end
+    
+    if type(func) ~= "function" then
+        print("^1[Tree Framework] Error: SetTimeout expects a function^r")
+        return
+    end
+    
+    return CreateThread(function()
+        Wait(milliseconds)
+        func()
+    end)
+end
+
+Tree.SetTimeout = SetTimeout

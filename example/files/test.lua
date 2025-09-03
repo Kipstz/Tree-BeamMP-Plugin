@@ -6,4 +6,6 @@ print(hole)
 Wait(2500)
 print("qzdzqdzqdqzd")
 
-local test = Tree.LoadLib("caca")
+SetTimeout(1000, function()
+    print("hola")
+end)
