@@ -45,6 +45,7 @@ dofile(scriptDir .. "_tree/loader.lua")
 dofile(scriptDir .. "_tree/colors.lua")
 dofile(scriptDir .. "_tree/threads.lua")
 dofile(scriptDir .. "_tree/library.lua")
+dofile(scriptDir .. "_tree/events.lua")
 
 Tree.Colors.init()
 

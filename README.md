@@ -113,6 +113,51 @@ print("^lBold^r ^nunderlined^r ^oitalic^r text")
 - `^l` bold, `^n` underline, `^o` italic, `^m` strike-through
 - `^r` reset, `^p` newline
 
+## Enhanced Event System
+
+The Tree Framework extends BeamMP's event system with enhanced functionality:
+
+### Multiple Event Handlers
+You can now register multiple handlers for the same event:
+
+```lua
+-- All three handlers will be called when onConsoleInput is triggered
+MP.RegisterEvent("onConsoleInput", function()
+    print("First handler")
+end)
+
+MP.RegisterEvent("onConsoleInput", function()
+    print("Second handler")
+end)
+
+MP.RegisterEvent("onConsoleInput", function()
+    print("Third handler")
+end)
+```
+
+### Anonymous Function Support
+Register event handlers using anonymous functions directly:
+
+```lua
+-- Traditional named function approach (still works)
+function MyHandler()
+    print("Named function handler")
+end
+MP.RegisterEvent("MyCoolCustomEvent", "MyHandler")
+
+-- New anonymous function approach
+MP.RegisterEvent("MyCoolCustomEvent", function()
+    print("Anonymous function handler")
+end)
+```
+
+### How It Works
+The framework automatically generates unique handler names internally:
+- Anonymous functions: `TreeAnonymous_[EventName]_[Counter]`
+- Named functions: `[FunctionName]_Tree_[Counter]`
+
+This prevents naming conflicts and allows multiple handlers per event.
+
 ## Native Libraries
 
 Place `.dll` (Windows) or `.so` (Linux) files in the `lib/` directory and load them:

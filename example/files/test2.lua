@@ -33,3 +33,23 @@ CreateThread(function()
 end)
 
 print("caca")
+
+function MyHandler()
+      print("cmd: MyHandler")
+end
+
+
+MP.RegisterEvent("MyCoolCustomEvent", "MyHandler")
+
+MP.RegisterEvent("onConsoleInput", function()
+      MP.TriggerGlobalEvent("MyCoolCustomEvent")
+end)
+MP.RegisterEvent("onConsoleInput", function()
+      MP.TriggerGlobalEvent("MyCoolCustomEvent")
+end)
+MP.RegisterEvent("onConsoleInput", function()
+      MP.TriggerGlobalEvent("MyCoolCustomEvent")
+end)
+  
+  
+  
