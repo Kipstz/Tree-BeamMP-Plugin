@@ -163,12 +163,35 @@ This prevents naming conflicts and allows multiple handlers per event.
 Place `.dll` (Windows) or `.so` (Linux) files in the `lib/` directory and load them:
 
 ```lua
--- Load json.dll on Windows or json.so on Linux
+-- Basic usage - Load json.dll on Windows or json.so on Linux
 local json = Tree.LoadLib("json")
 if json then
     local data = json.encode({hello = "world"})
 end
+
+-- Advanced: Specify custom entry point function name (string)
+local mimeLib = Tree.LoadLib("mime", "luaopen_mime_core")
+
+-- Advanced: Specify multiple custom entry point function names (table)
+-- Custom names are tried first, then default names
+local customLib = Tree.LoadLib("mylib", {"custom_init", "lib_open", "init_custom"})
 ```
+
+### Custom Function Names
+
+The `Tree.LoadLib` function accepts an optional second parameter to specify custom entry point function names:
+
+- **Single function name (string)**: `Tree.LoadLib("libname", "custom_init")`
+- **Multiple function names (table)**: `Tree.LoadLib("libname", {"init_one", "init_two"})`
+
+Custom function names are tried **first**, followed by default naming patterns:
+- `luaopen_[libname]`
+- `luaopen_lib[libname]`
+- `[libname]_init`
+- `init_[libname]`
+- `open_[libname]`
+
+This allows loading libraries with non-standard entry points without modifying the framework.
 
 **⚠️ Windows Note:** Native library loading is currently not working on Windows due to BeamMP's Lua environment limitations. Waiting for a future BeamMP patch to resolve this issue. Linux support may vary.
 
@@ -178,7 +201,7 @@ The Tree Framework provides a global `Tree` API available to all plugins:
 
 - `Tree.Debug(...)` - Debug logging with table support and color formatting
 - `Tree.GetInfo()` - Framework version and loaded plugin information
-- `Tree.LoadLib(name)` - Load native library from lib/ directory
+- `Tree.LoadLib(name, customFunctionNames?)` - Load native library from lib/ directory with optional custom entry point function names
 
 ## Example Plugin Usage
 

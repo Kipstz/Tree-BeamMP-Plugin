@@ -8,8 +8,9 @@ Tree.Library = {}
 
 ---Load a native library from plugin lib directory or system
 ---@param libName string Name of the library to load (without extension)
+---@param customFunctionNames? string|table Optional custom function name(s) to try loading
 ---@return any|nil lib The loaded library module, or nil on error
-function Tree.LoadLib(libName)
+function Tree.LoadLib(libName, customFunctionNames)
     if not libName or type(libName) ~= "string" then
         print("^4[Tree Framework] Error: Invalid library name^r")
         return nil
@@ -27,15 +28,34 @@ function Tree.LoadLib(libName)
     end
     
     local fileName = baseName .. extension
-    
-    local functionNames = {
+
+    local functionNames = {}
+
+    -- Add custom function names first if provided
+    if customFunctionNames then
+        if type(customFunctionNames) == "string" then
+            table.insert(functionNames, customFunctionNames)
+        elseif type(customFunctionNames) == "table" then
+            for _, funcName in ipairs(customFunctionNames) do
+                if type(funcName) == "string" then
+                    table.insert(functionNames, funcName)
+                end
+            end
+        end
+    end
+
+    -- Add default function names
+    local defaultNames = {
         "luaopen_" .. baseName,
         "luaopen_lib" .. baseName,
         baseName .. "_init",
         "init_" .. baseName,
-        "open_" .. baseName,
-        "luaopen_mime_core"
+        "open_" .. baseName
     }
+
+    for _, name in ipairs(defaultNames) do
+        table.insert(functionNames, name)
+    end
     
     local function tryLoadLib(libPath, source)
         if not Tree.Utils.fileExists(libPath) then
