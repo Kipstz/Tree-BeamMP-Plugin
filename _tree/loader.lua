@@ -151,49 +151,109 @@ function Tree.Loader.getLoadedPlugins()
     return loadedPlugins
 end
 
+---Get a specific loaded plugin by name
+---@param pluginName string Name of the plugin to retrieve
+---@return table|nil pluginData Plugin data or nil if not found
+function Tree.Loader.getLoadedPlugin(pluginName)
+    return loadedPlugins[pluginName]
+end
+
+---Unload a plugin and remove its files from the registry
+---@param pluginName string Name of the plugin to unload
+---@return boolean success True if plugin was unloaded successfully
+function Tree.Loader.unloadPlugin(pluginName)
+    local pluginData = loadedPlugins[pluginName]
+
+    if not pluginData then
+        print("^3[Tree Framework] Plugin not loaded: " .. pluginName .. "^7")
+        return false
+    end
+
+    print("^6[Tree Framework] Unloading plugin: " .. pluginName .. "^7")
+
+    -- Remove all files loaded by this plugin from the global registry
+    if pluginData.loadedFiles then
+        for _, filepath in ipairs(pluginData.loadedFiles) do
+            local normalizedPath = filepath:gsub("\\", "/")
+            loadedFiles[normalizedPath] = nil
+        end
+    end
+
+    -- Remove the plugin from the loaded plugins registry
+    loadedPlugins[pluginName] = nil
+
+    print("^2[Tree Framework] Plugin unloaded: " .. pluginName .. "^7")
+    print("^3[Tree Framework] Note: Global variables and event handlers from this plugin may persist until server restart^7")
+
+    return true
+end
+
 ---Load a single plugin from plugin info
 ---@param pluginInfo table Plugin info with name, path, and manifest fields
+---@param isReload boolean? If true, allows reloading an already loaded plugin
 ---@return boolean success True if plugin was loaded successfully
-function Tree.Loader.loadPlugin(pluginInfo)
+function Tree.Loader.loadPlugin(pluginInfo, isReload)
     if not pluginInfo or not pluginInfo.manifest then
         print("^1[Tree Framework] Invalid plugin info^7")
         return false
     end
-    
-    if loadedPlugins[pluginInfo.name] then
+
+    if loadedPlugins[pluginInfo.name] and not isReload then
         print("^3[Tree Framework] Plugin already loaded: " .. pluginInfo.name .. "^7")
         return true
     end
-    
+
     local manifest = Tree.Manifest.parse(pluginInfo.manifest)
     if not manifest then
         print("^1[Tree Framework] Failed to parse manifest for plugin: " .. pluginInfo.name .. "^7")
         return false
     end
-    
+
     local info = {}
     if manifest.description then table.insert(info, manifest.description) end
     if manifest.author then table.insert(info, "by " .. manifest.author) end
     if manifest.version then table.insert(info, "v" .. manifest.version) end
-    
+
     local pluginLabel = pluginInfo.name
     if #info > 0 then
         pluginLabel = pluginLabel .. " (" .. table.concat(info, " ") .. ")"
     end
-    
-    print("^6[Tree Framework] Loading plugin: " .. pluginLabel .. "^7")
-    
+
+    if isReload then
+        print("^6[Tree Framework] Reloading plugin: " .. pluginLabel .. "^7")
+    else
+        print("^6[Tree Framework] Loading plugin: " .. pluginLabel .. "^7")
+    end
+
+    -- Track files that will be loaded by this plugin
+    local filesBeforeLoad = {}
+    for filepath in pairs(loadedFiles) do
+        filesBeforeLoad[filepath] = true
+    end
+
     loadedPlugins[pluginInfo.name] = {
         info = pluginInfo,
         manifest = manifest,
-        filesLoaded = 0
+        filesLoaded = 0,
+        loadedFiles = {},
+        name = pluginInfo.name,
+        path = pluginInfo.path
     }
-    
+
     local filesLoaded = Tree.Loader.loadFromManifest(manifest, pluginInfo.path .. "/")
-    
+
+    -- Determine which files were loaded by this plugin
+    local pluginFiles = {}
+    for filepath in pairs(loadedFiles) do
+        if not filesBeforeLoad[filepath] then
+            table.insert(pluginFiles, filepath)
+        end
+    end
+
     if filesLoaded > 0 then
         loadedPlugins[pluginInfo.name].filesLoaded = filesLoaded
-        
+        loadedPlugins[pluginInfo.name].loadedFiles = pluginFiles
+
         print("^2[Tree Framework] Plugin loaded: " .. pluginInfo.name .. " (" .. filesLoaded .. " files)^7")
         return true
     else

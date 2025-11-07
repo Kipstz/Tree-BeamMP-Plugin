@@ -1,55 +1,29 @@
-print(coucouc)
-print(hole) 
+-- Access shared variables from test.lua
+print("^6[Events]^r Current player count: ^2" .. PlayerCount .. "^r")
+print("^6[Events]^r Server uptime: ^2" .. os.difftime(os.time(), ServerStartTime) .. "s^r")
 
-print("^0Black text^r")
-print("^1Blue text^r")
-print("^2Green text^r") 
-print("^3Light blue text^r")
-print("^4Red text^r")
-print("^5Pink text^r")
-print("^6Orange text^r")
-print("^7Grey text^r")
-print("^8Dark grey text^r")
-print("^9Light purple text^r")
-print("^aLight green text^r")
-print("^bLight blue text^r")
-print("^cDark orange text^r")
-print("^dLight pink text^r")
-print("^eYellow text^r")
-print("^fWhite text^r")
-
-print("^lBold text^r")
-print("^nUnderlined text^r")
-print("^oItalic text^r")
-print("^mStrike-through text^r")
-
-print("^2Mixed ^4colors ^l^6with ^n^ebold ^o^aand ^m^deffects^r")
-
-print("cocococuococuuocc")
-
-CreateThread(function()
-      Wait(1000)
-      print("coucouc")
+-- Player event handlers using enhanced event system
+MP.RegisterEvent("onPlayerJoin", function(playerID)
+    PlayerCount = PlayerCount + 1
+    local playerName = MP.GetPlayerName(playerID) or "Unknown"
+    print(string.format("^2[Join]^r %s connected (^2%d^r/^28^r players)", playerName, PlayerCount))
 end)
 
-print("caca")
-
-function MyHandler()
-      print("cmd: MyHandler")
-end
-
-
-MP.RegisterEvent("MyCoolCustomEvent", "MyHandler")
-
-MP.RegisterEvent("onConsoleInput", function()
-      MP.TriggerGlobalEvent("MyCoolCustomEvent")
+MP.RegisterEvent("onPlayerDisconnect", function(playerID)
+    PlayerCount = PlayerCount - 1
+    local playerName = MP.GetPlayerName(playerID) or "Unknown"
+    print(string.format("^4[Leave]^r %s disconnected (^2%d^r/^28^r players)", playerName, PlayerCount))
 end)
-MP.RegisterEvent("onConsoleInput", function()
-      MP.TriggerGlobalEvent("MyCoolCustomEvent")
+
+-- Multiple handlers for the same event (enhanced event system feature)
+MP.RegisterEvent("onChatMessage", function(playerID, playerName, message)
+    print(string.format("^3[Chat]^r %s: %s", playerName, message))
 end)
-MP.RegisterEvent("onConsoleInput", function()
-      MP.TriggerGlobalEvent("MyCoolCustomEvent")
+
+-- Example of delayed execution
+SetTimeout(2000, function()
+    print("^6[Events]^r Event handlers registered successfully!")
 end)
-  
-  
-  
+
+-- Example: Show color codes
+print("^6[Info]^r Framework supports ^2colors^r, ^4styles^r, and ^l^6formatting^r!")

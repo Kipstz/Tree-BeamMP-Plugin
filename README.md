@@ -9,9 +9,11 @@ The Tree Framework is the **core framework** that scans the `Resources/Server/` 
 ## Key Features
 
 - **Plugin Discovery** - Automatically scans parent directory for plugins with `manifest.lua` files
-- **Multi-plugin Support** - Load and manage multiple plugins simultaneously  
+- **Multi-plugin Support** - Load and manage multiple plugins simultaneously
 - **FiveM-like Structure** - Familiar manifest-driven development
 - **Global Variable Sharing** - Variables shared automatically between files within each plugin
+- **Hot Reload System** - Automatically detects file changes and reloads plugins every 5 seconds
+- **Enhanced Event System** - Multiple handlers per event with anonymous function support
 - **Zero Configuration** - Framework works out-of-the-box
 
 ## How It Works
@@ -32,7 +34,9 @@ Tree-BeamMP-Plugin/          # Core framework (this directory)
 │   ├── utils.lua          # Utility functions
 │   ├── colors.lua         # BeamMP color code support
 │   ├── threads.lua        # Threading utilities
-│   └── library.lua        # Native library loading
+│   ├── library.lua        # Native library loading
+│   ├── events.lua         # Enhanced event system
+│   └── hotreload.lua      # Hot reload system for development
 └── example/               # Example plugin structure for reference
 ```
 
@@ -57,16 +61,24 @@ Each plugin needs a `manifest.lua` file:
 
 ```lua
 author = 'Your Name'
-description = 'Your Plugin Description'
+description = 'Professional plugin description'
 version = '1.0.0'
 
--- Optional: Custom print prefix (defaults to plugin directory name)
-files_dir = 'files'  -- Directory containing your scripts (default: 'files')
-prefix = 'MyPlugin'  -- Custom prefix for print statements (optional)
+-- Directory configuration
+files_dir = 'files'      -- Directory containing your scripts (default: 'files')
+lib_dir = 'lib'          -- Directory for native libraries (default: 'lib')
 
+-- Console output customization
+print_prefix = '[MyPlugin] '  -- Custom prefix for print statements (optional)
+
+-- Enable hot reload for development
+hot_reload = true
+
+-- Load scripts in order
 server_scripts = {
     "init.lua",
-    "modules/*.lua"  -- Supports glob patterns
+    "config.lua",
+    "modules/*.lua"      -- Supports glob patterns
 }
 ```
 
@@ -78,17 +90,26 @@ server_scripts = {
 
 ## Variable Sharing
 
-Variables are shared automatically between files without require():
+Global variables are shared automatically between files in the same plugin:
 
 ```lua
--- files/init.lua
-playerCount = 0
-local secret = "private"
+-- files/config.lua
+ServerConfig = {
+    name = "My Server",
+    maxPlayers = 8,
+    version = "1.0.0"
+}
+local privateKey = "secret"  -- Only accessible in this file
 
--- files/modules/player.lua  
-print(playerCount)  -- Works
-print(secret)       -- nil (local variables stay private)
+-- files/events.lua
+print(ServerConfig.name)     -- Works: "My Server"
+print(privateKey)            -- nil (local variables stay private)
+
+-- Modify shared state
+ServerConfig.currentPlayers = 5
 ```
+
+This allows easy data sharing across your plugin files while maintaining encapsulation for local variables.
 
 ## Load Order
 
@@ -118,21 +139,25 @@ print("^lBold^r ^nunderlined^r ^oitalic^r text")
 The Tree Framework extends BeamMP's event system with enhanced functionality:
 
 ### Multiple Event Handlers
-You can now register multiple handlers for the same event:
+Register multiple handlers for the same event - all will be executed:
 
 ```lua
--- All three handlers will be called when onConsoleInput is triggered
-MP.RegisterEvent("onConsoleInput", function()
-    print("First handler")
+-- Plugin: AntiCheat
+MP.RegisterEvent("onPlayerJoin", function(playerID)
+    checkPlayerBan(playerID)
 end)
 
-MP.RegisterEvent("onConsoleInput", function()
-    print("Second handler")
+-- Plugin: WelcomeSystem
+MP.RegisterEvent("onPlayerJoin", function(playerID)
+    sendWelcomeMessage(playerID)
 end)
 
-MP.RegisterEvent("onConsoleInput", function()
-    print("Third handler")
+-- Plugin: Analytics
+MP.RegisterEvent("onPlayerJoin", function(playerID)
+    logPlayerJoin(playerID)
 end)
+
+-- All three handlers execute when a player joins!
 ```
 
 ### Anonymous Function Support
@@ -140,14 +165,16 @@ Register event handlers using anonymous functions directly:
 
 ```lua
 -- Traditional named function approach (still works)
-function MyHandler()
-    print("Named function handler")
+function handleServerCommand(cmd, args)
+    print("Executing command: " .. cmd)
 end
-MP.RegisterEvent("MyCoolCustomEvent", "MyHandler")
+MP.RegisterEvent("onConsoleInput", "handleServerCommand")
 
--- New anonymous function approach
-MP.RegisterEvent("MyCoolCustomEvent", function()
-    print("Anonymous function handler")
+-- Modern anonymous function approach (recommended)
+MP.RegisterEvent("onChatMessage", function(playerID, playerName, message)
+    if message:match("^/help") then
+        MP.SendChatMessage(playerID, "Available commands: /help, /info")
+    end
 end)
 ```
 
@@ -158,23 +185,125 @@ The framework automatically generates unique handler names internally:
 
 This prevents naming conflicts and allows multiple handlers per event.
 
-## Native Libraries
+## Hot Reload System
 
-Place `.dll` (Windows) or `.so` (Linux) files in the `lib/` directory and load them:
+The Tree Framework includes a powerful hot reload system that automatically detects file changes and reloads plugins without server restart.
+
+### Enabling Hot Reload
+
+Add `hot_reload = true` to your plugin's manifest:
 
 ```lua
--- Basic usage - Load json.dll on Windows or json.so on Linux
+author = 'Your Name'
+description = 'Player Management System'
+version = '1.0.0'
+
+-- Enable hot reload for rapid development
+hot_reload = true
+
+server_scripts = {
+    "config.lua",
+    "events.lua",
+    "commands.lua"
+}
+```
+
+Now you can modify any file and see changes in ~5 seconds without restarting the server!
+
+### How It Works
+
+1. When `hot_reload = true`, the framework monitors all files loaded by your plugin
+2. Every **5 seconds**, the system checks if any files have been modified
+3. When changes are detected:
+   - Plugin is automatically unloaded
+   - All files are reloaded fresh
+   - Console shows which files changed and reload status
+
+### Example Output
+
+When you edit a file and save:
+
+```
+[HotReload] Watching plugin: player-management (3 files)
+[HotReload] Hot reload system initialized (checking every 5 seconds)
+
+[HotReload] Detected change in: Resources/Server/player-management/files/events.lua
+[HotReload] Reloading plugin: player-management
+[Tree Framework] Unloading plugin: player-management
+[Tree Framework] Plugin unloaded: player-management
+[Tree Framework] Reloading plugin: player-management (Player Management System v1.0.0)
+[PlayerMgmt] Initializing Player Management System...
+[PlayerMgmt] Event handlers registered successfully!
+[Tree Framework] Plugin loaded: player-management (3 files)
+[HotReload] Successfully reloaded plugin: player-management
+[HotReload] Watching plugin: player-management (3 files)
+```
+
+Your changes are live without server restart!
+
+### Manual Checks
+
+You can manually trigger a check for all watched plugins:
+
+```lua
+Tree.HotReload.checkNow()  -- Force immediate check
+```
+
+### View Watched Plugins
+
+See which plugins are being watched:
+
+```lua
+local watched = Tree.HotReload.getWatchedPlugins()
+for name, info in pairs(watched) do
+    print(name .. " - watching " .. info.fileCount .. " files")
+end
+```
+
+### Important Notes
+
+- **Global Variables**: Variables declared globally in your plugin will persist after reload. Use `local` for truly fresh state.
+- **Event Handlers**: BeamMP event handlers registered with `MP.RegisterEvent()` may persist. The framework cannot fully clean these between reloads.
+- **Check Interval**: Fixed at 5 seconds (configurable in `_tree/hotreload.lua`)
+- **File Detection**: Uses content hashing to detect changes (timestamp API pending BeamMP support)
+
+### Limitations
+
+Due to Lua's nature, hot reload has some limitations:
+
+- **Global State**: Global variables and event handlers may persist across reloads
+- **Native Libraries**: Loaded native libraries (`.dll`/`.so`) cannot be unloaded
+- **Memory**: Old code remains in memory; server restart recommended periodically
+
+For complete cleanup, restart the server. Hot reload is best for rapid development iteration.
+
+## Native Libraries
+
+Place `.dll` (Windows) or `.so` (Linux) files in the `lib/` directory of your plugin and load them:
+
+```lua
+-- Load JSON library for data serialization
 local json = Tree.LoadLib("json")
 if json then
-    local data = json.encode({hello = "world"})
+    -- Serialize player data
+    local playerData = {
+        id = 123,
+        name = "Player1",
+        position = {x = 100, y = 50, z = 200}
+    }
+    local encoded = json.encode(playerData)
+    print("Saved: " .. encoded)
 end
 
--- Advanced: Specify custom entry point function name (string)
-local mimeLib = Tree.LoadLib("mime", "luaopen_mime_core")
+-- Load custom library with non-standard entry point
+local database = Tree.LoadLib("sqlite", "luaopen_lsqlite3")
+if database then
+    local db = database.open("playerdata.db")
+    -- Use database...
+end
 
--- Advanced: Specify multiple custom entry point function names (table)
--- Custom names are tried first, then default names
-local customLib = Tree.LoadLib("mylib", {"custom_init", "lib_open", "init_custom"})
+-- Try multiple entry points (first match wins)
+local crypto = Tree.LoadLib("openssl", {"luaopen_openssl", "init_ssl", "ssl_init"})
 ```
 
 ### Custom Function Names
@@ -199,9 +328,21 @@ This allows loading libraries with non-standard entry points without modifying t
 
 The Tree Framework provides a global `Tree` API available to all plugins:
 
+### Core API
 - `Tree.Debug(...)` - Debug logging with table support and color formatting
 - `Tree.GetInfo()` - Framework version and loaded plugin information
 - `Tree.LoadLib(name, customFunctionNames?)` - Load native library from lib/ directory with optional custom entry point function names
+
+### Hot Reload API
+- `Tree.HotReload.checkNow()` - Manually trigger an immediate check for file changes
+- `Tree.HotReload.getWatchedPlugins()` - Get information about all watched plugins
+- `Tree.HotReload.registerPlugin(pluginInfo)` - Manually register a plugin for hot reload watching
+- `Tree.HotReload.unregisterPlugin(pluginName)` - Stop watching a specific plugin
+
+### Threading API
+- `CreateThread(function)` - Create an asynchronous thread (global function)
+- `SetTimeout(milliseconds, function)` - Execute function after delay (global function)
+- `Wait(milliseconds)` - Sleep/pause execution (alias for `MP.Sleep`)
 
 ## Example Plugin Usage
 

@@ -46,6 +46,7 @@ dofile(scriptDir .. "_tree/colors.lua")
 dofile(scriptDir .. "_tree/threads.lua")
 dofile(scriptDir .. "_tree/library.lua")
 dofile(scriptDir .. "_tree/events.lua")
+dofile(scriptDir .. "_tree/hotreload.lua")
 
 Tree.Colors.init()
 
@@ -165,6 +166,17 @@ if parentDir then
     Tree.Loader.loadAllPlugins(parentDir)
 else
     print("^1[Tree Framework] Could not determine parent directory for plugin scanning^7")
+end
+
+-- Initialize hot reload system
+Tree.HotReload.init()
+
+-- Register plugins with hot_reload enabled
+local loadedPlugins = Tree.Loader.getLoadedPlugins()
+for pluginName, pluginData in pairs(loadedPlugins) do
+    if pluginData.manifest and pluginData.manifest.hot_reload then
+        Tree.HotReload.registerPlugin(pluginData)
+    end
 end
 
 _G.Tree = Tree
